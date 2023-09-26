@@ -169,7 +169,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      indices = np.random.choice(X.shape[0], batch_size, replace=True)
+      X_batch = X[indices]
+      y_batch = y[indices]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -184,7 +186,8 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      for param in self.params.keys():
+        self.params[param]-=learning_rate*grads[param]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -229,11 +232,17 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    W1, b1 = self.params['W1'], self.params['b1']
+    W2, b2 = self.params['W2'], self.params['b2']
+    N, D = X.shape
+    pass1=self.relu(X@W1+b1) # ND X DH = NH + H
+    scores=pass1@W2+b2 # NH X HC = NC+C
+    scores=np.exp(scores)
+    scores/=np.sum(scores, axis=1, keepdims=True)
+    y_pred=np.argmax(scores,axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
-
     return y_pred
 
 
