@@ -60,7 +60,7 @@ def softmax_loss_vectorized(W, X, y, reg):
   dW = np.zeros_like(W)
 
   scores=X@W
-  #scores -= np.max(scores, axis=1, keepdims=True)
+  scores -= np.max(scores, axis=1, keepdims=True) #to ensure numerical instability is mitigated. so we subtract the max to stop the overflow 
   scores = np.exp(scores)
   scores /= np.sum(scores, axis=1, keepdims=True)
   loss -= np.sum(np.log(scores[np.arange(X.shape[0]), y]))

@@ -94,7 +94,7 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    
+    scores -= np.max(scores, axis=1, keepdims=True)
     scores=np.exp(scores)
     scores/=np.sum(scores, axis=1, keepdims=True) #softmax
     loss = -np.sum(np.log(scores[np.arange(X.shape[0]), y]))/X.shape[0]
