@@ -20,16 +20,18 @@ def affine_forward(x, w, b):
     - out: output, of shape (N, M)
     - cache: (x, w, b)
     """
+    cache = (x, w, b) #to retain the Shape of X
     out = None
     ###########################################################################
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    pass
+    x=x.reshape(x.shape[0],-1) #reshaping D=d1*d2*...*dn
+    out=x@w+b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, w, b)
+    
     return out, cache
 
 
@@ -54,7 +56,16 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    pass
+    x_ds=x.shape[1:]
+    dx=dout@w.T
+    dx=dx.reshape(x.shape[0],*x_ds)
+    print(x_ds)
+
+    x=x.reshape(x.shape[0],-1) #(N,D)
+    dw=x.T@dout
+
+    ones=np.ones(dout.shape[0])
+    db=(ones@dout).T
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -72,15 +83,17 @@ def relu_forward(x):
     - out: Output, of the same shape as x
     - cache: x
     """
+    relu=lambda x:np.maximum(0,x)
     out = None
+    cache = x
     ###########################################################################
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
-    pass
+    out=relu(x)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = x
+    
     return out, cache
 
 
@@ -99,7 +112,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
-    pass
+    dout[x<=0]=0 #gradient of ReLu
+    dx=dout
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
