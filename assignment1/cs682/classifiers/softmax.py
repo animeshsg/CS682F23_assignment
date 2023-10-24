@@ -20,7 +20,7 @@ def softmax_loss_naive(W, X, y, reg):
   - gradient with respect to weights W; an array of same shape as W
   """
   # Initialize the loss and gradient to zero.
-  loss = 0.0
+  loss = 0
   dW = np.zeros_like(W)
 
   #############################################################################
@@ -30,18 +30,20 @@ def softmax_loss_naive(W, X, y, reg):
   # regularization!                                                           #
   #############################################################################
   for i in range(X.shape[0]):
-      scores = X[i]@W
-      scores -= np.max(scores)
-      scores = np.exp(scores)
-      scores /= np.sum(scores)
-      loss -= np.log(scores[y[i]])
-      scores[y[i]] -= 1
-      dW += np.outer(X[i], scores)
+      vals = X[i]@W
+      vals -= np.max(vals) #to ensure numerical instability is mitigated. so we subtract the max to stop potential overflow
+      #softmax calcs
+      vals = np.exp(vals) 
+      vals /= np.sum(vals)
+      #cross entropy loss
+      loss -= np.log(vals[y[i]])
+      vals[y[i]] -= 1
+      dW += np.outer(X[i], vals)
   
   loss /= X.shape[0]
-  loss += reg * np.sum(W * W)
+  loss += reg * np.sum(W**2)
   dW /= X.shape[0]
-  dW += 2 * reg * W
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -56,21 +58,24 @@ def softmax_loss_vectorized(W, X, y, reg):
   Inputs and outputs are the same as softmax_loss_naive.
   """
   # Initialize the loss and gradient to zero.
-  loss = 0.0
+  loss = 0
   dW = np.zeros_like(W)
 
-  scores=X@W
-  scores -= np.max(scores, axis=1, keepdims=True) #to ensure numerical instability is mitigated. so we subtract the max to stop the overflow 
-  scores = np.exp(scores)
-  scores /= np.sum(scores, axis=1, keepdims=True)
-  loss -= np.sum(np.log(scores[np.arange(X.shape[0]), y]))
-  scores[np.arange(X.shape[0]), y] -= 1 
-  dW += X.T @ scores
+  vals=X@W
+  vals -= np.max(vals, axis=1, keepdims=True) #to ensure numerical instability is mitigated. so we subtract the max to stop the overflow 
+  #softmax calcs
+  vals = np.exp(vals)
+  vals /= np.sum(vals, axis=1, keepdims=True)
+  #cross entropy loss
+  loss -= np.sum(np.log(vals[np.arange(X.shape[0]), y]))
+
+  vals[np.arange(X.shape[0]), y] -= 1 #Softmax_grads: subtract 1 from correct class and 0 from others, its like subtracting probits with one hot encoded Y to help calculate the gradient
+  dW += X.T @ vals #calculate the gradients by multipluing the gradient of relu i.e X with the previous vals
 
   loss /= X.shape[0]
-  loss += reg * np.sum(W * W) 
+  loss += reg*np.sum(W**2) 
   dW /= X.shape[0]
-  dW += 2 * reg * W
+  dW += 2*reg*W
   
 
   #############################################################################

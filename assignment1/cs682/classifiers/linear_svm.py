@@ -23,31 +23,32 @@ def svm_loss_naive(W, X, y, reg):
   dW = np.zeros(W.shape) # initialize the gradient as zero
 
   # compute the loss and the gradient
-  num_classes = W.shape[1]
-  num_train = X.shape[0]
-  loss = 0.0
-  for i in range(num_train):
-    scores = X[i].dot(W)
-    correct_class_score = scores[y[i]]
-    for j in range(num_classes):
+  loss = 0
+  for i in range(X.shape[0]):
+    vals = X[i]@W # score values for each class and data
+    #vals -= np.max(vals) # for numerical stability
+    ccvals = vals[y[i]] #correct class values
+    for j in range(W.shape[1]):
       if j == y[i]:
         continue
-      margin = scores[j] - correct_class_score + 1 # note delta = 1
-      if margin > 0:
-        loss += margin
-        #Subgradients of multiclass SVM loss is +X for Wj and -X for W_yi and 0 when negative margin
-        dW[:,j] += X[i]
-        dW[:,y[i]] -= X[i]
+      inner_vals = vals[j] - ccvals + 1 # note delta = 1
+      if inner_vals > 0:
+        loss += inner_vals
+        #Subgradients of multiclass SVM loss is +X for Wj and -X for W_yi and 0 when negative inner_vals
+        dW[:,j] += X[i].T
+        dW[:,y[i]] -= X[i].T
 
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
-  loss /= num_train
+  loss /= X.shape[0]
 
   # Add regularization to the loss.
-  loss += reg * np.sum(W * W)
-  dW/=num_train
-  dW += 2 * reg * W
+  loss += reg * np.sum(W**2)
+
+  #Average the gradient
+  dW/=X.shape[0]
+  dW += 2*reg*W
 
   #############################################################################
   # TODO:                                                                     #
@@ -57,9 +58,6 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
-
-  
-
   return loss, dW
 
 
@@ -69,16 +67,17 @@ def svm_loss_vectorized(W, X, y, reg):
 
   Inputs and outputs are the same as svm_loss_naive.
   """
-  loss = 0.0
+  loss = 0
   dW = np.zeros(W.shape) # initialize the gradient as zero
-  scores=X@W # shape(N,C)
-  correct_scores=scores[np.arange(scores.shape[0]),y]
-  f=scores-correct_scores[:,np.newaxis]+1 #shape(N,C)
-  loss=np.sum(f[f>0])/X.shape[0]-1+reg*np.sum(W*W)
-  f[f<=0]=0
-  f[f>0]=1
-  f[np.arange(f.shape[0]),y]-=np.sum(f,axis=1)
-  dW=X.T@f/X.shape[0]+2*reg*W
+  vals=X@W # shape(N,C)
+  #vals-=np.max(vals,axis=1)[:,np.newaxis] #shape(N,1) for numerical stability
+  ccvals=vals[np.arange(vals.shape[0]),y]
+  iv=vals-ccvals[:,np.newaxis]+1 #shape(N,C)  inner values iinside the max func
+  loss=np.sum(iv[iv>0])/X.shape[0]-1+reg*np.sum(W**2)
+  iv[iv<=0]=0
+  iv[iv>0]=1
+  iv[np.arange(iv.shape[0]),y]-=np.sum(iv,axis=1)
+  dW=X.T@iv/X.shape[0]+2*reg*W
 
 
 
