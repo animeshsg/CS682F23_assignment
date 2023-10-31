@@ -56,10 +56,9 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    x_ds=x.shape[1:]
+    x_ds=x.shape[1:] 
     dx=dout@w.T
-    dx=dx.reshape(x.shape[0],*x_ds)
-    print(x_ds)
+    dx=dx.reshape(x.shape[0],*x_ds) #reshaping D into d1*d2*...*dn
 
     x=x.reshape(x.shape[0],-1) #(N,D)
     dw=x.T@dout
@@ -93,7 +92,6 @@ def relu_forward(x):
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    
     return out, cache
 
 
