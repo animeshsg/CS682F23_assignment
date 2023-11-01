@@ -197,12 +197,10 @@ class FullyConnectedNet(object):
 
             self.params['W'+str(i+1)]=weight_scale*np.random.randn(dim_list[i],dim_list[i+1])+0.0
             self.params['b'+str(i+1)]=np.zeros(dim_list[i+1])
-            if self.normalization!=None: #FIX THIS condition wrt last layer
-              self.params['gamma'+str(i+1)]=np.ones(dim_list[i+1])
-              self.params['beta'+str(i+1)]=np.zeros(dim_list[i+1])
-
-        
-            
+            if self.normalization!=None and i!=self.num_layers-1: 
+              self.params['gamma'+str(i+1)]=np.ones(dim_list[i+1],)
+              self.params['beta'+str(i+1)]=np.zeros(dim_list[i+1],)
+               
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -230,8 +228,7 @@ class FullyConnectedNet(object):
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
-
-
+    
     def loss(self, X, y=None):
         """
         Compute loss and gradient for the fully-connected net.
@@ -279,8 +276,23 @@ class FullyConnectedNet(object):
         cache=[]
         for i in range(self.num_layers-1):
             X=X if i==0 else scores
-            scores,ar_cache=affine_relu_forward(X,self.params['W'+str(i+1)],self.params['b'+str(i+1)])
+            W=self.params['W'+str(i+1)]
+            b=self.params['b'+str(i+1)]
+            
+            #normalization layers
+            if self.normalization!=None:
+                gamma=self.params['gamma'+str(i+1)]
+                beta=self.params['beta'+str(i+1)]
+                bn_param=self.bn_params[i]
+                scores,ar_cache=affine_norm_relu_forward(X,W,b,gamma,beta,bn_param,self.normalization)
+            
+            #affine+relu layers
+            else:
+              scores,ar_cache=affine_relu_forward(X,W,b)
+            
             cache.append(ar_cache)
+        
+        #last layer pass
         scores,af_cache=affine_forward(scores,self.params['W'+str(i+2)],self.params['b'+str(i+2)])
         cache.append((af_cache))
         
@@ -319,7 +331,13 @@ class FullyConnectedNet(object):
 
         for i in range(self.num_layers-2,-1,-1):
             dcache=cache[i]
-            dx,dw,db=affine_relu_backward(dx,dcache)
+            
+            if self.normalization!=None:
+                dx,dw,db,dgamma,dbeta=affine_norm_relu_backward(dx,dcache,self.normalization)
+                grads['gamma'+str(i+1)]=dgamma
+                grads['beta'+str(i+1)]=dbeta
+            else:
+              dx,dw,db=affine_relu_backward(dx,dcache)
 
             grads['W'+str(i+1)]=dw+self.params['W'+str(i+1)]*self.reg
             grads['b'+str(i+1)]=db
@@ -328,47 +346,55 @@ class FullyConnectedNet(object):
         ############################################################################
 
         return loss, grads
+
+
+def affine_relu_forward(scores,W,b):
+    '''
+    Convenience layer of Affine and ReLu forward pass
     
-    @staticmethod
-    def affine_relu_forward(scores,W,b):
-        '''
-        Convenience layer of Affine and ReLu forward pass
-        
-        Input:
-        scores: scores of forward layer
-        W: weight matrix
-        b: bias matrix
+    Input:
+    scores: scores of forward layer
+    W: weight matrix
+    b: bias matrix
 
-        Returns:
-        scores
-        tuple of affine and relu cache
-        '''
-        scores,af_cache=affine_forward(scores,W,b)
-        scores,relu_cache=relu_forward(scores)
-        return scores, (af_cache,relu_cache)
+    Returns:
+    scores
+    tuple of affine and relu cache
+    '''
+    scores,af_cache=affine_forward(scores,W,b)
+    scores,relu_cache=relu_forward(scores)
+    return scores, (af_cache,relu_cache)
+
+
+def affine_relu_backward(dout,cache):
+    '''
+    Convenience layer of ReLU + affine backward pass
     
-    @staticmethod
-    def affine_relu_backward(dout,cache):
-        '''
-        Convenience layer of ReLU + affine backward pass
-        
-        Input:
-        dout: grad output of previous layer
-        cache: (affine,RelU) cache of previous layer 
+    Input:
+    dout: grad output of previous layer
+    cache: (affine,RelU) cache of previous layer 
 
-        Returns:
-        dx: gradient of dout
-        dw: gradient of Weight matrix
-        db: gradient of bias matrix
-        '''
-        dout=relu_backward(dout,cache[1])
-        dx,dw,db=affine_backward(dout,cache[0])
-        return dx,dw,db
+    Returns:
+    dx: gradient of dout
+    dw: gradient of Weight matrix
+    db: gradient of bias matrix
+    '''
+    dout=relu_backward(dout,cache[1])
+    dx,dw,db=affine_backward(dout,cache[0])
+    return dx,dw,db
 
+def affine_norm_relu_forward(scores,w,b,gamma,beta,bn_param,normalization):
+    scores,af_cache=affine_forward(scores,w,b)
+    normalization_forward=batchnorm_forward if normalization=="batchnorm" else layernorm_forward
+    scores,bn_cache=normalization_forward(scores,gamma,beta,bn_param)
+    scores,relu_cache=relu_forward(scores)
+   
+    return scores,(af_cache,bn_cache,relu_cache)
 
-
-        
-        
-
-       
-
+def affine_norm_relu_backward(dout,cache,normalization):
+    af_cache,bn_cache,relu_cache=cache
+    dout=relu_backward(dout,relu_cache)
+    normalization_backward=batchnorm_backward_alt if normalization=="batchnorm" else layernorm_backward
+    dout,dgamma,dbeta=normalization_backward(dout,bn_cache)
+    dout,dw,db=affine_backward(dout,af_cache)
+    return dout,dw,db,dgamma,dbeta
