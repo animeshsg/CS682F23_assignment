@@ -819,7 +819,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     return out, cache
 
 
-def spatial_groupnorm_backward(dout, cache):
+def spatial_groupnorm_backward(dout, cache): #fix
     """
     Computes the backward pass for spatial group normalization.
 
