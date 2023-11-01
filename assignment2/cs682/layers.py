@@ -667,27 +667,23 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     x,pool_param = cache
     N, C, H, W = x.shape
-    pool_height=pool_param['pool_height']
-    pool_width =pool_param['pool_width']
+    pH=pool_param['pool_height']
+    pW=pool_param['pool_width']
     stride = pool_param['stride']
         
-    H_out = 1 + (H -pool_height) // stride
-    W_out = 1 + (W - pool_width) // stride
-    
-    
-
+    Hout = 1+(H-pH)//stride
+    Wout = 1+(W- pW)//stride
     dx = np.zeros_like(x)
     
     for n in range(N):
         for c in range(C):
-            for j in range(0,H-pool_height+1,stride):
-                for i in range(0,W-pool_width+1,stride):
-                    #out[n,c,j//stride,i//stride]=np.max(x[n,c,j:j+pool_height,i:i+pool_width])
-                    max = np.max(x[n,c,j:j+pool_height,i:i+pool_width])
-                    for jj in range(0,pool_height):
-                        for ii in range(0, pool_width):
-                            if max == x[n,c,j+jj,i+ii]:
-                                dx[n,c,j+jj,i+ii]+=dout[n,c,j//stride,i//stride]
+            for i in range(0,H-pH+1,stride):
+                for j in range(0,W-pW+1,stride):
+                    max = np.max(x[n,c,i:i+pH,j:j+pW]) #max threshold vals
+                    for pi in range(0,pH): #jj
+                        for pj in range(0, pW): #ii
+                            if max == x[n,c,i+pi,j+pj]:
+                                dx[n,c,i+pi,j+pj]+=dout[n,c,i//stride,j//stride] #pooling op
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
