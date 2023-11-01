@@ -389,6 +389,7 @@ def affine_relu_backward(dout,cache,dropout):
     return dx,dw,db
 
 def affine_norm_relu_forward(scores,w,b,gamma,beta,bn_param,normalization,dropout,dp_params):
+    dp_cache=None
     scores,af_cache=affine_forward(scores,w,b)
     normalization_forward=batchnorm_forward if normalization=="batchnorm" else layernorm_forward
     scores,bn_cache=normalization_forward(scores,gamma,beta,bn_param)
@@ -398,7 +399,6 @@ def affine_norm_relu_forward(scores,w,b,gamma,beta,bn_param,normalization,dropou
     return scores,(af_cache,bn_cache,relu_cache,dp_cache)
 
 def affine_norm_relu_backward(dout,cache,normalization,dropout):
-    dp_cache=None
     af_cache,bn_cache,relu_cache,dp_cache=cache
     if dropout:
         dout=dropout_backward(dout,dp_cache)
