@@ -249,12 +249,15 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     x,x_mean,x_var,x_std,x_norm,gamma=cache
-    dldxhat=dout*gamma
-    dldvar=np.sum(dldxhat*(x-x_mean),axis=0)*-0.5*(x_var**-1.5)
-    dldmu=np.sum(dldxhat/-x_std,axis=0)+dldvar*(-2*np.sum(x-x_mean,axis=0))/x.shape[0]
-    dx=dldxhat/x_std+dldvar*2*(x-x_mean)/x.shape[0]+dldmu/x.shape[0]
-    dgamma=np.sum(x_norm*dout,axis=0)
-    dbeta=np.sum(dout,axis=0)
+    M=x.shape[0]
+
+    dbeta = np.sum(dout,axis=0)
+    dgamma = np.sum(x_norm * dout,axis=0)
+    dldxnorm = dout * gamma
+    
+    dldvar= np.sum(1.0*dldxnorm*(x-x_mean),axis=0) *(-0.5*(x_std)**(-3))
+    dldmean= np.sum(-dldxnorm*1.0/x_std, axis=0)-2.0*dldvar/M*np.sum((x-x_mean),axis=0)
+    dx = 1.0*dldxnorm/x_std + dldvar*(2.0*(x-x_mean)/M)+dldmean/M
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -430,9 +433,8 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        mask = (np.random.rand(*x.shape) < p)#with scale out factor
-        x *= mask
-        out=x
+        mask = (np.random.rand(*x.shape) < p)/p#with scale out factor
+        out=x*mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -444,7 +446,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         #                            END OF YOUR CODE                         #
         #######################################################################
-    print((out==0).mean())
+    
     cache = (dropout_param, mask)
     out = out.astype(x.dtype, copy=False)
 

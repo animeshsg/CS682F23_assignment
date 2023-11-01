@@ -284,12 +284,11 @@ class FullyConnectedNet(object):
                 gamma=self.params['gamma'+str(i+1)]
                 beta=self.params['beta'+str(i+1)]
                 bn_param=self.bn_params[i]
-                scores,ar_cache=affine_norm_relu_forward(X,W,b,gamma,beta,bn_param,self.normalization)
+                scores,ar_cache=affine_norm_relu_forward(X,W,b,gamma,beta,bn_param,self.normalization,self.use_dropout,self.dropout_param)
             
             #affine+relu layers
             else:
-              scores,ar_cache=affine_relu_forward(X,W,b)
-            
+              scores,ar_cache=affine_relu_forward(X,W,b,self.use_dropout,self.dropout_param)
             cache.append(ar_cache)
         
         #last layer pass
@@ -331,13 +330,12 @@ class FullyConnectedNet(object):
 
         for i in range(self.num_layers-2,-1,-1):
             dcache=cache[i]
-            
             if self.normalization!=None:
-                dx,dw,db,dgamma,dbeta=affine_norm_relu_backward(dx,dcache,self.normalization)
+                dx,dw,db,dgamma,dbeta=affine_norm_relu_backward(dx,dcache,self.normalization,self.use_dropout)
                 grads['gamma'+str(i+1)]=dgamma
                 grads['beta'+str(i+1)]=dbeta
             else:
-              dx,dw,db=affine_relu_backward(dx,dcache)
+              dx,dw,db=affine_relu_backward(dx,dcache,self.use_dropout)
 
             grads['W'+str(i+1)]=dw+self.params['W'+str(i+1)]*self.reg
             grads['b'+str(i+1)]=db
@@ -348,7 +346,7 @@ class FullyConnectedNet(object):
         return loss, grads
 
 
-def affine_relu_forward(scores,W,b):
+def affine_relu_forward(scores,W,b,dropout,dp_params):
     '''
     Convenience layer of Affine and ReLu forward pass
     
@@ -361,12 +359,15 @@ def affine_relu_forward(scores,W,b):
     scores
     tuple of affine and relu cache
     '''
+    dp_cache=None
     scores,af_cache=affine_forward(scores,W,b)
     scores,relu_cache=relu_forward(scores)
-    return scores, (af_cache,relu_cache)
+    if dropout:
+        scores,dp_cache=dropout_forward(scores,dp_params)
+    return scores, (af_cache,relu_cache,dp_cache)
 
 
-def affine_relu_backward(dout,cache):
+def affine_relu_backward(dout,cache,dropout):
     '''
     Convenience layer of ReLU + affine backward pass
     
@@ -379,20 +380,28 @@ def affine_relu_backward(dout,cache):
     dw: gradient of Weight matrix
     db: gradient of bias matrix
     '''
-    dout=relu_backward(dout,cache[1])
-    dx,dw,db=affine_backward(dout,cache[0])
+    af_cache,relu_cache,dp_cache=cache
+    if dropout:
+        dout=dropout_backward(dout,dp_cache)
+    dout=relu_backward(dout,relu_cache)
+    dx,dw,db=affine_backward(dout,af_cache)
+
     return dx,dw,db
 
-def affine_norm_relu_forward(scores,w,b,gamma,beta,bn_param,normalization):
+def affine_norm_relu_forward(scores,w,b,gamma,beta,bn_param,normalization,dropout,dp_params):
     scores,af_cache=affine_forward(scores,w,b)
     normalization_forward=batchnorm_forward if normalization=="batchnorm" else layernorm_forward
     scores,bn_cache=normalization_forward(scores,gamma,beta,bn_param)
     scores,relu_cache=relu_forward(scores)
-   
-    return scores,(af_cache,bn_cache,relu_cache)
+    if dropout:
+        scores,dp_cache=dropout_forward(scores,dp_params)
+    return scores,(af_cache,bn_cache,relu_cache,dp_cache)
 
-def affine_norm_relu_backward(dout,cache,normalization):
-    af_cache,bn_cache,relu_cache=cache
+def affine_norm_relu_backward(dout,cache,normalization,dropout):
+    dp_cache=None
+    af_cache,bn_cache,relu_cache,dp_cache=cache
+    if dropout:
+        dout=dropout_backward(dout,dp_cache)
     dout=relu_backward(dout,relu_cache)
     normalization_backward=batchnorm_backward_alt if normalization=="batchnorm" else layernorm_backward
     dout,dgamma,dbeta=normalization_backward(dout,bn_cache)
