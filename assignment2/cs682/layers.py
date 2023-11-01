@@ -711,12 +711,12 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     N,C,H,W=x.shape
     out=np.zeros_like(x)
 
-    xT = np.transpose(x, [1,0 ,2 , 3])
-    xS= xT.reshape(xT.shape[0],-1).T # N * H * W ,C
+    xT=np.transpose(x, [1,0 ,2 , 3])
+    xS=xT.reshape(xT.shape[0],-1).T # N * H * W ,C
 
-    outS,bn_cache = batchnorm_forward(xS, gamma, beta, bn_param)
-    outT = np.reshape(outS,(N,H,W,C))
-    out = outT.transpose(0,3,1,2)
+    outS,bn_cache=batchnorm_forward(xS, gamma, beta, bn_param)
+    outT=np.reshape(outS,(N,H,W,C))
+    out=outT.transpose(0,3,1,2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -746,12 +746,12 @@ def spatial_batchnorm_backward(dout, cache):
     # vanilla version of batch normalization you implemented above.           #
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
-    N,C,H,W = dout.shape
-    dl = np.transpose(dout,[1,0,2,3])
-    dlS = dl.reshape(dl.shape[0],-1).T
-    dxS,dgamma,dbeta = batchnorm_backward_alt(dlS, cache)
-    dxT = np.reshape(dxS,(N,H,W,C))
-    dx = dxT.transpose(0,3,1,2)
+    N,C,H,W=dout.shape
+    dl=np.transpose(dout,[1,0,2,3])
+    dlS=dl.reshape(dl.shape[0],-1).T
+    dxS,dgamma,dbeta=batchnorm_backward_alt(dlS, cache)
+    dxT=np.reshape(dxS,(N,H,W,C))
+    dx=dxT.transpose(0,3,1,2)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -788,7 +788,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # the bulk of the code is similar to both train-time batch normalization  #
     # and layer normalization!                                                #
     ###########################################################################
-    N, C, H, W=x.shape
+    N,C,H,W=x.shape
     xT=x.reshape((N*G, C//G *H*W)).T
 
     x_mean=np.mean(xT, axis=0)
@@ -834,7 +834,7 @@ def spatial_groupnorm_backward(dout, cache): #fix this
     dldxhat=dout * gamma
     
     
-    M =x_norm.shape[0]
+    M=x_norm.shape[0]
     dldxhat=dldxhat.reshape(x_norm.T.shape).T
     dldxnorm_sum = np.sum(dldxhat,axis=0)
     dx=(1.0/M)*1.0/x_std*(M*dldxhat-dldxnorm_sum-x_norm*np.sum(dldxhat*x_norm,axis=0))
